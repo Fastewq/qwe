@@ -74,8 +74,8 @@ interface EditableReceptionPreviewProps {
 
 interface PositionItemProps {
   item: ReceptionItem
-  onUpdate?: (updates: Partial<ReceptionItem>) => void
-  onNameUpdate?: (newName: string) => void
+  onUpdate?: (updates: Partial<ReceptionItem>) => Promise<void>
+  onNameUpdate?: (newName: string) => Promise<void>
   onDelete?: () => void
 }
 
@@ -95,23 +95,23 @@ const PositionItem: React.FC<PositionItemProps> = ({ item, onUpdate, onNameUpdat
   const total = item.quantity * item.price
   const isIncome = item.transaction_type === 'Доходы'
 
-  const handleQuantitySave = () => {
+  const handleQuantitySave = async () => {
     if (onUpdate && editQuantity !== item.quantity) {
-      onUpdate({ quantity: editQuantity })
+      await onUpdate({ quantity: editQuantity })
     }
     setIsEditingQuantity(false)
   }
 
-  const handlePriceSave = () => {
+  const handlePriceSave = async () => {
     if (onUpdate && editPrice !== item.price) {
-      onUpdate({ price: editPrice })
+      await onUpdate({ price: editPrice })
     }
     setIsEditingPrice(false)
   }
 
-  const handleNameSave = () => {
+  const handleNameSave = async () => {
     if (onNameUpdate && editName !== item.item_description && editName.trim()) {
-      onNameUpdate(editName.trim())
+      await onNameUpdate(editName.trim())
     }
     setIsEditingName(false)
   }
@@ -159,21 +159,31 @@ const PositionItem: React.FC<PositionItemProps> = ({ item, onUpdate, onNameUpdat
     setShowItemModal(true)
   }
 
-  const handleSelectItem = (selectedItem: { name: string; price?: number }) => {
+  const handleSelectItem = async (selectedItem: { name: string; price?: number }) => {
     if (isEditingName && onNameUpdate) {
       setEditName(selectedItem.name)
       if (selectedItem.price !== undefined && selectedItem.price > 0) {
         setEditPrice(Math.abs(selectedItem.price))
       }
-      // Apply the changes immediately
-      onNameUpdate(selectedItem.name)
-      if (onUpdate && selectedItem.price !== undefined && selectedItem.price > 0) {
-        onUpdate({ price: Math.abs(selectedItem.price) })
+
+      setShowItemModal(false)
+
+      // Apply name changes
+      try {
+        await onNameUpdate(selectedItem.name)
+        // Apply price changes after name is updated
+        if (onUpdate && selectedItem.price !== undefined && selectedItem.price > 0) {
+          await onUpdate({ price: Math.abs(selectedItem.price) })
+        }
+      } finally {
+        setIsEditingName(false)
+        setIsEditingPrice(false)
       }
+    } else {
+      setShowItemModal(false)
+      setIsEditingName(false)
+      setIsEditingPrice(false)
     }
-    setShowItemModal(false)
-    setIsEditingName(false)
-    setIsEditingPrice(false)
   }
 
   return (
@@ -338,8 +348,8 @@ const PositionItem: React.FC<PositionItemProps> = ({ item, onUpdate, onNameUpdat
 interface TransactionGroupProps {
   type: string
   items: ReceptionItem[]
-  onItemUpdate?: (itemIndex: number, updates: Partial<ReceptionItem>) => void
-  onItemNameUpdate?: (itemIndex: number, newName: string) => void
+  onItemUpdate?: (itemIndex: number, updates: Partial<ReceptionItem>) => Promise<void>
+  onItemNameUpdate?: (itemIndex: number, newName: string) => Promise<void>
   onItemDelete?: (itemIndex: number) => void
 }
 
@@ -393,8 +403,8 @@ const TransactionGroup: React.FC<TransactionGroupProps> = ({ type, items, onItem
 interface BaseItemGroupProps {
   baseItemName: string
   items: ReceptionItem[]
-  onItemUpdate?: (itemIndex: number, updates: Partial<ReceptionItem>) => void
-  onItemNameUpdate?: (itemIndex: number, newName: string) => void
+  onItemUpdate?: (itemIndex: number, updates: Partial<ReceptionItem>) => Promise<void>
+  onItemNameUpdate?: (itemIndex: number, newName: string) => Promise<void>
   onItemDelete?: (itemIndex: number) => void
 }
 
@@ -468,8 +478,8 @@ const BaseItemGroup: React.FC<BaseItemGroupProps> = ({ baseItemName, items, onIt
 interface WorkGroupProps {
   workGroup: string
   items: ReceptionItem[]
-  onItemUpdate?: (itemIndex: number, updates: Partial<ReceptionItem>) => void
-  onItemNameUpdate?: (itemIndex: number, newName: string) => void
+  onItemUpdate?: (itemIndex: number, updates: Partial<ReceptionItem>) => Promise<void>
+  onItemNameUpdate?: (itemIndex: number, newName: string) => Promise<void>
   onItemDelete?: (itemIndex: number) => void
   onAddItemToGroup?: (workGroup: string) => void
 }
@@ -551,8 +561,8 @@ const WorkGroup: React.FC<WorkGroupProps> = ({ workGroup, items, onItemUpdate, o
 
 interface MotorGroupProps {
   motor: AcceptedMotor
-  onItemUpdate?: (itemIndex: number, updates: Partial<ReceptionItem>) => void
-  onItemNameUpdate?: (itemIndex: number, newName: string) => void
+  onItemUpdate?: (itemIndex: number, updates: Partial<ReceptionItem>) => Promise<void>
+  onItemNameUpdate?: (itemIndex: number, newName: string) => Promise<void>
   onItemDelete?: (itemIndex: number) => void
   onServiceNameUpdate?: (newServiceName: string) => void
   onSubdivisionNameUpdate?: (newSubdivisionName: string) => void
